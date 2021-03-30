@@ -1,0 +1,76 @@
+
+custom_rules:
+  - nextstrain_profiles/nextstrain/subsampling_ranges.smk
+  - ecdc_profile/localrules.smk
+
+inputs:
+  - name: gisaid
+    metadata: data/GISAID/metadata.tsv
+    sequences: data/GISAID/sequences.fasta
+
+
+builds:
+  # with a build name that will produce the following URL fragment on Nextstrain/auspice:
+  # /ncov/Europe/Sweden
+  sweden:
+      subsampling_scheme: custom_country
+      geographic_scale: country
+      region: Europe
+      country: Sweden
+      subclades: "nextstrain_profiles/nextstrain/subclades_EU.tsv"
+
+# Here, you can specify what type of auspice_config you want to use
+# and what description you want. These will apply to all the above builds.
+# If you want to specify specific files for each build - you can!
+# See the 'example_advanced_customization' builds.yaml
+files:
+  colors: "ecdc_profile/colors.tsv"
+  auspice_config: "ecdc_profile/auspice_config_ecdc.json"
+  description: "ecdc_profile/description.md"
+
+subsampling:
+# Default subsampling logic for countries
+  custom_country:
+    # Focal samples for country
+    country_early:
+      group_by: "division year month"
+      max_sequences: 500
+      exclude: "--exclude-where 'country!={country}'"
+    country_late:
+      group_by: "division year month"
+      max_sequences: 1000
+      exclude: "--exclude-where 'country!={country}'"
+    # Contextual samples from country's region
+    region_early:
+      group_by: "country year month"
+      max_sequences: 250
+      exclude: "--exclude-where 'country={country}' 'region!={region}'"
+      priorities:
+        type: "proximity"
+        focus: "country_early"
+    # Contextual samples from the rest of the world,
+    # excluding the current region to avoid resampling.
+    global_early:
+      group_by: "country year month"
+      max_sequences: 300
+      exclude: "--exclude-where 'region={region}'"
+      priorities:
+        type: "proximity"
+        focus: "country_early"
+    region_late:
+      group_by: "country year month"
+      max_sequences: 750
+      exclude: "--exclude-where 'country={country}' 'region!={region}'"
+      priorities:
+        type: "proximity"
+        focus: "country_late"
+    # Contextual samples from the rest of the world,
+    # excluding the current region to avoid resampling.
+    global_late:
+      group_by: "country year month"
+      max_sequences: 500
+      exclude: "--exclude-where 'region={region}'"
+      priorities:
+        type: "proximity"
+        focus: "country_late"
+
